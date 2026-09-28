@@ -289,7 +289,7 @@ func (m *Manager) connectCamera(ctx context.Context, cam *Camera) {
 	// runtime TUTK -> WebRTC fallback), its secondary producer is no
 	// longer valid. Remove it before attempting the new primary route
 	// so a failed primary reconnect cannot leave stale SD media behind.
-	if protocol != "tutk" && m.cfg.CamSubstream(cam.Name()) {
+	if protocol != "tutk" && m.ownsSecondaryStream(cam) {
 		_ = go2rtc.DeleteStream(ctx, cam.Name()+substreamSuffix)
 	}
 

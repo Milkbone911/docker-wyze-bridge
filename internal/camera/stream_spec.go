@@ -26,10 +26,8 @@ type streamSpec struct {
 	Role     streamRole
 }
 
-// streamSpecsFor returns the desired go2rtc streams for a camera.
-// The main stream always exists. A secondary stream is opt-in and,
-// for now, only available on the TUTK path where go2rtc supports an
-// independent wyze:// producer with subtype=sd/hd.
+// ownsSecondaryStream reports whether the bridge owns the historical
+// <camera>-sub name for this physical camera.
 func (m *Manager) ownsSecondaryStream(cam *Camera) bool {
 	if !m.cfg.CamSubstream(cam.Name()) {
 		return false
@@ -43,6 +41,10 @@ func (m *Manager) ownsSecondaryStream(cam *Camera) bool {
 	return protocol == "tutk" || cam.ForceWebRTC()
 }
 
+// streamSpecsFor returns the desired go2rtc streams for a camera.
+// The main stream always exists. A secondary stream is opt-in and,
+// for now, only available on the TUTK path where go2rtc supports an
+// independent wyze:// producer with subtype=sd/hd.
 func (m *Manager) streamSpecsFor(cam *Camera) []streamSpec {
 	mainURL, protocol := m.streamSourceFor(cam)
 	specs := []streamSpec{{

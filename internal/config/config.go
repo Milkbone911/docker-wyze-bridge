@@ -340,12 +340,16 @@ func (c *Config) CamRecord(camName string) bool {
 
 func normalizeSubQuality(quality string) string {
 	quality = strings.ToLower(strings.TrimSpace(quality))
-	switch quality {
-	case "", "sd30":
+	if quality == "" {
 		return "sd"
-	default:
-		return quality
 	}
+	if strings.HasPrefix(quality, "sd") {
+		return "sd"
+	}
+	if strings.HasPrefix(quality, "hd") {
+		return "hd"
+	}
+	return quality
 }
 
 func normalizeCamName(name string) string {

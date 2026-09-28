@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - ci/validate-substreams
+  pull_request:
+    branches:
+      - ci/validate-substreams
 
 permissions:
   contents: read

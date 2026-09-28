@@ -311,7 +311,7 @@ func (c *Config) CamSubstream(camName string) bool {
 }
 
 // CamSubQuality returns the effective secondary-stream quality for a camera.
-// The Python bridge historically documented "sd30"; go2rtc uses "sd".
+// Legacy Python sd*/hd* quality strings collapse to go2rtc's sd/hd subtype.
 func (c *Config) CamSubQuality(camName string) string {
 	key := normalizeCamName(camName)
 	if ov, ok := c.CamOverrides[key]; ok && ov.SubQuality != nil {

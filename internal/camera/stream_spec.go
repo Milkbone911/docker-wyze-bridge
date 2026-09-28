@@ -65,12 +65,20 @@ func (m *Manager) syncSecondaryStreams(ctx context.Context, cam *Camera) {
 		return
 	}
 
+	// When the feature is disabled this suffix is not ours. Leave any
+	// user-defined <camera>-sub stream untouched so the default
+	// configuration has no new side effects.
+	if !m.cfg.CamSubstream(cam.Name()) {
+		return
+	}
+
 	specs := m.streamSpecsFor(cam)
 	subName := cam.Name() + substreamSuffix
 
 	if len(specs) == 1 {
-		// Clean up a stale secondary producer after config changes or
-		// a runtime TUTK -> WebRTC promotion.
+		// The feature is enabled but the camera is no longer on TUTK
+		// (for example after runtime fallback). Remove the secondary
+		// stream that this manager previously owned.
 		_ = go2rtc.DeleteStream(ctx, subName)
 		return
 	}
@@ -100,12 +108,18 @@ func (m *Manager) healthCheckSecondaryStreams(
 	cam *Camera,
 	streams map[string]*go2rtcmgr.StreamInfo,
 ) {
+	if !m.cfg.CamSubstream(cam.Name()) {
+		return
+	}
+
 	specs := m.streamSpecsFor(cam)
 	subName := cam.Name() + substreamSuffix
 
 	if len(specs) == 1 {
 		if _, stale := streams[subName]; stale {
-			_ = m.go2rtcClient().DeleteStream(ctx, subName)
+			if go2rtc := m.go2rtcClient(); go2rtc != nil {
+				_ = go2rtc.DeleteStream(ctx, subName)
+			}
 		}
 		return
 	}
@@ -133,5 +147,7 @@ func (m *Manager) deleteCameraStreams(ctx context.Context, cam *Camera) {
 		return
 	}
 	_ = go2rtc.DeleteStream(ctx, cam.Name())
-	_ = go2rtc.DeleteStream(ctx, cam.Name()+substreamSuffix)
+	if m.cfg.CamSubstream(cam.Name()) {
+		_ = go2rtc.DeleteStream(ctx, cam.Name()+substreamSuffix)
+	}
 }

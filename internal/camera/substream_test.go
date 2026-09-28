@@ -239,3 +239,31 @@ func TestManager_WebRTCFallbackDropsTUTKSubstream(t *testing.T) {
 		t.Fatal("primary stream should remain registered after fallback")
 	}
 }
+
+
+func TestManager_NativeWebRTCIgnoresSubstreamSuffix(t *testing.T) {
+	mgr, api := newTestManager(t)
+	mgr.cfg.Substream = true
+	ctx := context.Background()
+
+	if err := api.AddStream(ctx, "duo-sub", "custom-source"); err != nil {
+		t.Fatal(err)
+	}
+
+	cam := NewCamera(wyzeapi.CameraInfo{
+		Name:  "duo",
+		Model: "GW_DBD",
+		MAC:   "AABBCCDDEE01",
+	}, "hd", true, false)
+	mgr.cameras[cam.Name()] = cam
+	mgr.connectCamera(ctx, cam)
+	mgr.StopStream(ctx, cam.Name())
+
+	streams, err := api.ListStreams(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := streams["duo-sub"]; !ok {
+		t.Error("native WebRTC camera must not claim or delete duo-sub")
+	}
+}

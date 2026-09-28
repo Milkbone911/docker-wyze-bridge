@@ -1,0 +1,159 @@
+name: Fork Validation
+
+on:
+  pull_request:
+    branches:
+      - ci/validate-substreams-final
+
+permissions:
+  contents: write
+  packages: write
+
+env:
+  VALIDATION_IMAGE: ghcr.io/milkbone911/docker-wyze-bridge-validation
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.26.4'
+
+      - name: Format changed Go files
+        shell: bash
+        run: |
+          set -euo pipefail
+          files=(
+            internal/camera/integration_test.go
+            internal/camera/manager.go
+            internal/camera/stream_spec.go
+            internal/camera/substream_failure_test.go
+            internal/camera/substream_test.go
+            internal/config/config.go
+            internal/config/config_test.go
+            internal/config/yaml.go
+            internal/config/yaml_test.go
+          )
+          gofmt -w "${files[@]}"
+          if git diff --quiet -- "${files[@]}"; then
+            echo "Changed Go files are already gofmt-clean"
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add "${files[@]}"
+            git commit -m "gofmt substream changes"
+            git push origin "HEAD:${{ github.head_ref }}"
+          fi
+
+      - name: Diff whitespace check
+        run: git diff --check c4991b1e6980b94d9ee2636533c97b0d72f73000 HEAD
+
+      - name: Check add-on shell syntax
+        run: |
+          bash -n home_assistant/wyze_bridge/run.sh
+          bash -n home_assistant/wyze_bridge_edge/run.sh
+
+      - name: Run tests
+        run: go test -v -cover ./...
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Race test changed packages
+        run: go test -race ./internal/camera ./internal/config
+
+  bridge-image:
+    needs: quality
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Login to fork GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build and publish temporary multi-arch bridge image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./docker/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ env.VALIDATION_IMAGE }}:${{ github.sha }}
+          build-args: |
+            VERSION=validation-${{ github.sha }}
+          cache-from: type=gha,scope=substream-validation-final
+          cache-to: type=gha,mode=max,scope=substream-validation-final
+          provenance: false
+
+  addon-stable:
+    needs: bridge-image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Login to fork GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build stable add-on for both supported architectures
+        uses: docker/build-push-action@v6
+        with:
+          context: ./home_assistant/wyze_bridge
+          file: ./home_assistant/wyze_bridge/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: false
+          build-args: |
+            WYZE_BRIDGE_IMAGE=${{ env.VALIDATION_IMAGE }}:${{ github.sha }}
+          tags: local/wyze-bridge-homeassistant-validation:stable
+          cache-from: type=gha,scope=substream-validation-final-ha-stable
+          cache-to: type=gha,mode=max,scope=substream-validation-final-ha-stable
+          provenance: false
+
+  addon-edge:
+    needs: bridge-image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Login to fork GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build edge add-on for both supported architectures
+        uses: docker/build-push-action@v6
+        with:
+          context: ./home_assistant/wyze_bridge_edge
+          file: ./home_assistant/wyze_bridge_edge/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: false
+          build-args: |
+            WYZE_BRIDGE_IMAGE=${{ env.VALIDATION_IMAGE }}:${{ github.sha }}
+          tags: local/wyze-bridge-homeassistant-validation:edge
+          cache-from: type=gha,scope=substream-validation-final-ha-edge
+          cache-to: type=gha,mode=max,scope=substream-validation-final-ha-edge
+          provenance: false

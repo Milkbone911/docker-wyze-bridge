@@ -250,8 +250,9 @@ func (m *Manager) ConnectAll(ctx context.Context) {
 	wg.Wait()
 }
 
-// connectCamera registers a camera's stream with go2rtc via the HTTP
-// API. The stream URL is picked by protocol:
+// connectCamera registers a camera's primary stream with go2rtc via
+// the HTTP API, then reconciles any optional secondary stream. The
+// primary stream URL is picked by protocol:
 //
 //   - TUTK: wyze:// source — go2rtc dials the camera directly.
 //   - WebRTC (GW_BE1 / GW_DBD / any Gwell model without a LAN IP):

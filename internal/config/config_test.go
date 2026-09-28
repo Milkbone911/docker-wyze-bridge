@@ -16,6 +16,8 @@ func TestLoadDefaults(t *testing.T) {
 	t.Setenv("BRIDGE_PORT", "")
 	t.Setenv("QUALITY", "")
 	t.Setenv("AUDIO", "")
+	t.Setenv("SUBSTREAM", "")
+	t.Setenv("SUB_QUALITY", "")
 	t.Setenv("MQTT_TOPIC", "")
 	t.Setenv("MQTT_DISCOVERY_TOPIC", "")
 
@@ -32,6 +34,12 @@ func TestLoadDefaults(t *testing.T) {
 	}
 	if !cfg.Audio {
 		t.Error("Audio should default to true")
+	}
+	if cfg.Substream {
+		t.Error("Substream should default to false")
+	}
+	if cfg.SubQuality != "sd" {
+		t.Errorf("SubQuality = %q, want sd", cfg.SubQuality)
 	}
 	if cfg.MQTTTopic != "wyzebridge" {
 		t.Errorf("MQTTTopic = %q, want wyzebridge", cfg.MQTTTopic)
@@ -74,6 +82,8 @@ func TestLoadMQTTHostEnablesMQTT(t *testing.T) {
 
 func TestCamOverrides(t *testing.T) {
 	t.Setenv("QUALITY_FRONT_DOOR", "sd")
+	t.Setenv("SUBSTREAM_FRONT_DOOR", "true")
+	t.Setenv("SUB_QUALITY_FRONT_DOOR", "sd30")
 	t.Setenv("AUDIO_BACKYARD", "false")
 	t.Setenv("RECORD_GARAGE", "true")
 
@@ -88,11 +98,31 @@ func TestCamOverrides(t *testing.T) {
 	if q := cfg.CamQuality("unknown_cam"); q != cfg.Quality {
 		t.Errorf("CamQuality(unknown) = %q, want default %q", q, cfg.Quality)
 	}
+	if !cfg.CamSubstream("front_door") {
+		t.Error("CamSubstream(front_door) should be true")
+	}
+	if q := cfg.CamSubQuality("front_door"); q != "sd" {
+		t.Errorf("CamSubQuality(front_door) = %q, want sd", q)
+	}
 	if a := cfg.CamAudio("backyard"); a {
 		t.Error("CamAudio(backyard) should be false")
 	}
 	if r := cfg.CamRecord("garage"); !r {
 		t.Error("CamRecord(garage) should be true")
+	}
+}
+
+func TestNormalizeSubQuality(t *testing.T) {
+	for in, want := range map[string]string{
+		"":     "sd",
+		"sd":   "sd",
+		"SD":   "sd",
+		"sd30": "sd",
+		"hd":   "hd",
+	} {
+		if got := normalizeSubQuality(in); got != want {
+			t.Errorf("normalizeSubQuality(%q) = %q, want %q", in, got, want)
+		}
 	}
 }
 

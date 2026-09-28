@@ -285,6 +285,14 @@ func (m *Manager) connectCamera(ctx context.Context, cam *Camera) {
 		Bool("dtls", snap.Info.DTLS).
 		Msg("connecting camera to go2rtc")
 
+	// If an opted-in camera has moved away from TUTK (for example,
+	// runtime TUTK -> WebRTC fallback), its secondary producer is no
+	// longer valid. Remove it before attempting the new primary route
+	// so a failed primary reconnect cannot leave stale SD media behind.
+	if protocol != "tutk" && m.cfg.CamSubstream(cam.Name()) {
+		_ = go2rtc.DeleteStream(ctx, cam.Name()+substreamSuffix)
+	}
+
 	// Drop any prior go2rtc entry first so the PUT below is a clean
 	// re-create rather than an in-place source swap. Without this,
 	// a reconnect after HealthCheck saw 0 producers can leave the

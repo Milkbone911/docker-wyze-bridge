@@ -22,6 +22,8 @@ CAM_OPTIONS:
   - CAM_NAME: garage
     QUALITY: sd
     AUDIO: false
+    SUBSTREAM: true
+    SUB_QUALITY: sd30
     RECORD: true
 `
 	os.WriteFile(filepath.Join(dir, "config.yml"), []byte(yaml), 0644)
@@ -72,6 +74,12 @@ CAM_OPTIONS:
 	}
 	if ov.Audio == nil || *ov.Audio != false {
 		t.Errorf("GARAGE audio = %v", ov.Audio)
+	}
+	if ov.Substream == nil || !*ov.Substream {
+		t.Errorf("GARAGE substream = %v", ov.Substream)
+	}
+	if ov.SubQuality == nil || *ov.SubQuality != "sd30" {
+		t.Errorf("GARAGE sub quality = %v", ov.SubQuality)
 	}
 	if ov.Record == nil || *ov.Record != true {
 		t.Errorf("GARAGE record = %v", ov.Record)

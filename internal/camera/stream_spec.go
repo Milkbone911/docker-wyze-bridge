@@ -147,8 +147,8 @@ func (m *Manager) healthCheckSecondaryStreams(
 }
 
 // deleteCameraStreams removes stream names owned by a physical camera.
-// The secondary name is ours only when SUBSTREAM is enabled; with the
-// feature disabled, a user-defined <camera>-sub stream is left alone.
+// Native WebRTC/Gwell cameras never own the secondary suffix, and a
+// disabled SUBSTREAM leaves any user-defined <camera>-sub stream alone.
 func (m *Manager) deleteCameraStreams(ctx context.Context, cam *Camera) {
 	go2rtc := m.go2rtcClient()
 	if go2rtc == nil {

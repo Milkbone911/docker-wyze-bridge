@@ -250,6 +250,23 @@ rely on an earlier behavior, set the env var explicitly.
 | `BRIDGE_API_TOKEN` | — | Bearer token for REST API access (renamed from `WB_API` in 4.0) |
 | `FORCE_IOTC_DETAIL` | `false` | Verbose TUTK/go2rtc logging |
 
+### Restored TUTK substreams
+
+The Go bridge again supports an opt-in secondary stream for TUTK cameras.
+
+| Variable | Default | Description |
+| ---------- | --------- | ------------- |
+| `SUBSTREAM` | `false` | Enable `<camera>-sub` for TUTK cameras |
+| `SUB_QUALITY` | `sd` | Secondary-stream quality; legacy `sd30` is treated as `sd` |
+| `SUBSTREAM_<CAM>` | global setting | Per-camera enable/disable override |
+| `SUB_QUALITY_<CAM>` | global setting | Per-camera secondary-quality override |
+
+The secondary stream is an independent go2rtc `wyze://` producer, not a
+transcode of the primary stream. A secondary-stream failure does not mark
+the physical camera offline or trigger the primary stream's fallback path.
+WebRTC/KVS and Gwell cameras currently keep their primary stream only.
+The old `SUB_RECORD` behavior remains unsupported.
+
 ### Ignored Variables (silently dropped)
 
 `MTX_*`, `ON_DEMAND`, `CONNECT_TIMEOUT`, `OFFLINE_ERRNO`, `IGNORE_OFFLINE`, `RTSP_FW`, `LLHLS`, `SUBJECT_ALT_NAME`, `FRESH_DATA`, `SUPERVISOR_TOKEN`

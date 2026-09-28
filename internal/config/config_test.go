@@ -118,9 +118,9 @@ func TestCamOverrides(t *testing.T) {
 
 func TestNormalizeSubQuality(t *testing.T) {
 	for in, want := range map[string]string{
-		"":     "sd",
-		"sd":   "sd",
-		"SD":   "sd",
+		"":      "sd",
+		"sd":    "sd",
+		"SD":    "sd",
 		"sd30":  "sd",
 		"sd60":  "sd",
 		"hd":    "hd",
@@ -169,7 +169,6 @@ func TestParseLogLevel(t *testing.T) {
 		}
 	}
 }
-
 
 func TestCamSubstreamPerCameraDisableOverridesGlobal(t *testing.T) {
 	t.Setenv("SUBSTREAM", "true")

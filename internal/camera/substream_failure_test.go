@@ -80,7 +80,6 @@ func TestManager_SubstreamRegistrationFailureDoesNotFailCamera(t *testing.T) {
 	}
 }
 
-
 func TestManager_NonTUTKReconnectFailureStillDropsStaleSubstream(t *testing.T) {
 	streams := map[string]bool{"patio-sub": true}
 

@@ -159,7 +159,6 @@ func TestManager_StopStream_RemovesMainAndSub(t *testing.T) {
 	}
 }
 
-
 func TestManager_SubstreamDisabledDoesNotOwnSuffix(t *testing.T) {
 	mgr, api := newTestManager(t)
 	mgr.cfg.Substream = false
@@ -182,7 +181,6 @@ func TestManager_SubstreamDisabledDoesNotOwnSuffix(t *testing.T) {
 		t.Error("garage-sub should be preserved when SUBSTREAM is disabled")
 	}
 }
-
 
 func TestManager_SetQualityKeepsIndependentSubQuality(t *testing.T) {
 	mgr, api := newTestManager(t)
@@ -220,7 +218,6 @@ func TestManager_SetQualityKeepsIndependentSubQuality(t *testing.T) {
 	}
 }
 
-
 func TestManager_WebRTCFallbackDropsTUTKSubstream(t *testing.T) {
 	mgr, api := newTestManager(t)
 	mgr.cfg.Substream = true
@@ -247,7 +244,6 @@ func TestManager_WebRTCFallbackDropsTUTKSubstream(t *testing.T) {
 		t.Fatal("primary stream should remain registered after fallback")
 	}
 }
-
 
 func TestManager_NativeWebRTCIgnoresSubstreamSuffix(t *testing.T) {
 	mgr, api := newTestManager(t)

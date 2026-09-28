@@ -45,8 +45,10 @@ export_opt 'bridge.stream_auth' STREAM_AUTH
 export_opt 'bridge.go2rtc_url'  GO2RTC_URL
 
 # ── Camera defaults ─────────────────────────────────────────────────────────
-export_opt 'camera.quality' QUALITY
-export_opt 'camera.audio'   AUDIO
+export_opt 'camera.quality'     QUALITY
+export_opt 'camera.audio'       AUDIO
+export_opt 'camera.substream'   SUBSTREAM
+export_opt 'camera.sub_quality' SUB_QUALITY
 
 # ── MQTT — auto-detect Mosquitto addon if the user didn't set a host ───────
 if bashio::services.available "mqtt"; then
@@ -156,13 +158,14 @@ if bashio::config.has_value 'go2rtc.extra_streams'; then
 fi
 
 # ── Per-camera overrides ────────────────────────────────────────────────────
-# Fan camera.options[] out to QUALITY_<NAME>/AUDIO_<NAME>/RECORD_<NAME> env
-# vars that internal/config/yaml.go:loadCamOverrides consumes. Bashio has no
+# Fan camera.options[] out to QUALITY_<NAME>/AUDIO_<NAME>/
+# SUBSTREAM_<NAME>/SUB_QUALITY_<NAME>/RECORD_<NAME> env vars that
+# internal/config/yaml.go:loadCamOverrides consumes. Bashio has no
 # native array iterator so we go straight to jq. Name normalization matches
 # Go's normalizeCamName (uppercase, spaces→underscores, strip non-alnum_).
 if bashio::config.has_value 'camera.options'; then
     bashio::log.info "Applying per-camera overrides from camera.options..."
-    while IFS=$'\t' read -r cam_name quality audio record; do
+    while IFS=$'\t' read -r cam_name quality audio substream sub_quality record; do
         [ -z "$cam_name" ] && continue
         key="$(printf '%s' "$cam_name" | tr '[:lower:]' '[:upper:]' | tr ' ' '_' | tr -cd 'A-Z0-9_')"
         [ -z "$key" ] && continue
@@ -172,10 +175,16 @@ if bashio::config.has_value 'camera.options'; then
         if [ "$audio" != "null" ] && [ -n "$audio" ]; then
             export "AUDIO_${key}=${audio}"
         fi
+        if [ "$substream" != "null" ] && [ -n "$substream" ]; then
+            export "SUBSTREAM_${key}=${substream}"
+        fi
+        if [ "$sub_quality" != "null" ] && [ -n "$sub_quality" ]; then
+            export "SUB_QUALITY_${key}=${sub_quality}"
+        fi
         if [ "$record" != "null" ] && [ -n "$record" ]; then
             export "RECORD_${key}=${record}"
         fi
-    done < <(jq -r '.camera.options[]? | [.cam_name, (.quality // "null"), (.audio // "null"), (.record // "null")] | @tsv' /data/options.json)
+    done < <(jq -r '.camera.options[]? | [.cam_name, (.quality // "null"), (.audio // "null"), (.substream // "null"), (.sub_quality // "null"), (.record // "null")] | @tsv' /data/options.json)
 fi
 
 # ── State dir — HA persists /config ─────────────────────────────────────────

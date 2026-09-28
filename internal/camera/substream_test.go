@@ -211,3 +211,31 @@ func TestManager_SetQualityKeepsIndependentSubQuality(t *testing.T) {
 		t.Fatalf("sub producer = %+v, want subtype=hd", sub)
 	}
 }
+
+
+func TestManager_WebRTCFallbackDropsTUTKSubstream(t *testing.T) {
+	mgr, api := newTestManager(t)
+	mgr.cfg.Substream = true
+	mgr.cfg.SubQuality = "sd"
+	ctx := context.Background()
+
+	cam := substreamTestCamera("patio", "HL_CFL2")
+	mgr.cameras[cam.Name()] = cam
+	mgr.connectCamera(ctx, cam)
+
+	if !cam.SetForceWebRTC(true) {
+		t.Fatal("expected WebRTC promotion to change camera routing")
+	}
+	mgr.RestartStream(ctx, cam.Name())
+
+	streams, err := api.ListStreams(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := streams["patio-sub"]; ok {
+		t.Error("TUTK-only substream should be removed after WebRTC promotion")
+	}
+	if main := streams["patio"]; main == nil || len(main.Producers) == 0 {
+		t.Fatal("primary stream should remain registered after fallback")
+	}
+}

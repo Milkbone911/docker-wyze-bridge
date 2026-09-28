@@ -117,8 +117,11 @@ func TestNormalizeSubQuality(t *testing.T) {
 		"":     "sd",
 		"sd":   "sd",
 		"SD":   "sd",
-		"sd30": "sd",
-		"hd":   "hd",
+		"sd30":  "sd",
+		"sd60":  "sd",
+		"hd":    "hd",
+		"hd120": "hd",
+		"HD180": "hd",
 	} {
 		if got := normalizeSubQuality(in); got != want {
 			t.Errorf("normalizeSubQuality(%q) = %q, want %q", in, got, want)

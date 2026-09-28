@@ -105,8 +105,10 @@ it can't be `go get`'d) and because it owns ffmpeg per OG camera.
 Every interaction with go2rtc is through `http://127.0.0.1:1984/api/`.
 The bridge writes a skeletal YAML at startup (listener ports, auth,
 STUN/ICE config, no streams) and then uses `PUT /api/streams` to
-register each camera once discovered. Mid-run discovery additions are
-an API call, not a restart.
+register media producers once cameras are discovered. A physical camera
+always owns one primary stream; an opted-in TUTK camera may also own an
+independent `<camera>-sub` producer. Mid-run discovery additions are an
+API call, not a restart.
 
 ---
 
@@ -342,7 +344,16 @@ type Camera struct {
 
 **IP refresh:** On connection failure, re-query Wyze API for current device IP before next attempt. DHCP assigns can change.
 
-**Health polling:** Every 30s, `GET /api/streams` from go2rtc API. Any camera expected to be streaming but showing no active producer transitions to reconnecting.
+**Health polling:** Every 30s, `GET /api/streams` from go2rtc API. Any camera expected to be streaming but showing no active primary producer transitions to reconnecting.
+
+**Stream variants:** A `Camera` represents one physical device and remains the
+authority for device state, controls, MQTT identity, and protocol fallback.
+Optional TUTK substreams are lightweight media variants beneath that object,
+not duplicate `Camera` instances. When enabled, the manager registers
+`<camera>-sub` as a second go2rtc `wyze://` producer with its own requested
+quality. Secondary failures are repaired independently and must not increment
+the camera error count, mark the primary stream offline, or trigger TUTK→WebRTC
+fallback. WebRTC/KVS and Gwell paths currently expose the primary stream only.
 
 #### 5.3.2 Camera Filter
 
@@ -359,7 +370,10 @@ Filtered-out cameras are never added to go2rtc and never appear in MQTT or WebUI
 
 #### 5.3.3 Per-Camera Overrides
 
-`CAM_OPTIONS` in config.yml or env vars `RECORD_{CAM_NAME}`, `QUALITY_{CAM_NAME}`, `AUDIO_{CAM_NAME}` override global defaults per camera. Names are normalized (uppercase, spaces→underscores) to match env var conventions.
+`CAM_OPTIONS` in config.yml or env vars `RECORD_{CAM_NAME}`,
+`QUALITY_{CAM_NAME}`, `AUDIO_{CAM_NAME}`, `SUBSTREAM_{CAM_NAME}`, and
+`SUB_QUALITY_{CAM_NAME}` override global defaults per camera. Names are
+normalized (uppercase, spaces→underscores) to match env var conventions.
 
 ### 5.4 MQTT (`internal/mqtt/`)
 
@@ -806,6 +820,8 @@ FILTER_BLOCKS       bool     invert: listed cameras are excluded
 # ── Camera Defaults ───────────────────────────────────────────────────────────
 QUALITY             string   "hd" | "sd", default "hd"
 AUDIO               bool     default true
+SUBSTREAM           bool     TUTK secondary stream, default false
+SUB_QUALITY         string   secondary quality, default "sd"
 OFFLINE_TIME        int      seconds before marked offline, default 30
 
 # ── Recording ────────────────────────────────────────────────────────────────
@@ -828,9 +844,11 @@ LATITUDE            float    decimal degrees (for sunrise/sunset snapshots)
 LONGITUDE           float    decimal degrees
 
 # ── Camera env overrides (uppercase cam name, spaces→underscores) ─────────────
-QUALITY_{CAM_NAME}  string   "hd" | "sd"
-AUDIO_{CAM_NAME}    bool
-RECORD_{CAM_NAME}   bool
+QUALITY_{CAM_NAME}      string   "hd" | "sd"
+AUDIO_{CAM_NAME}        bool
+SUBSTREAM_{CAM_NAME}    bool
+SUB_QUALITY_{CAM_NAME}  string   "hd" | "sd"
+RECORD_{CAM_NAME}       bool
 
 # ── Paths ────────────────────────────────────────────────────────────────────
 STATE_DIR           string   state/config dir, default "/config"

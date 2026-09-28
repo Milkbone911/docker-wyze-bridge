@@ -30,6 +30,19 @@ type streamSpec struct {
 // The main stream always exists. A secondary stream is opt-in and,
 // for now, only available on the TUTK path where go2rtc supports an
 // independent wyze:// producer with subtype=sd/hd.
+func (m *Manager) ownsSecondaryStream(cam *Camera) bool {
+	if !m.cfg.CamSubstream(cam.Name()) {
+		return false
+	}
+	_, protocol := m.streamSourceFor(cam)
+	// A TUTK camera owns the secondary producer it can create. A
+	// force-WebRTC camera may still own a stale secondary producer
+	// created immediately before runtime fallback. Native WebRTC and
+	// Gwell cameras never claim the suffix merely because SUBSTREAM is
+	// enabled globally.
+	return protocol == "tutk" || cam.ForceWebRTC()
+}
+
 func (m *Manager) streamSpecsFor(cam *Camera) []streamSpec {
 	mainURL, protocol := m.streamSourceFor(cam)
 	specs := []streamSpec{{
@@ -76,10 +89,11 @@ func (m *Manager) syncSecondaryStreams(ctx context.Context, cam *Camera) {
 	subName := cam.Name() + substreamSuffix
 
 	if len(specs) == 1 {
-		// The feature is enabled but the camera is no longer on TUTK
-		// (for example after runtime fallback). Remove the secondary
-		// stream that this manager previously owned.
-		_ = go2rtc.DeleteStream(ctx, subName)
+		// Native WebRTC/Gwell cameras never own the suffix. A camera
+		// runtime-promoted from TUTK does, so remove that stale producer.
+		if m.ownsSecondaryStream(cam) {
+			_ = go2rtc.DeleteStream(ctx, subName)
+		}
 		return
 	}
 
@@ -116,9 +130,11 @@ func (m *Manager) healthCheckSecondaryStreams(
 	subName := cam.Name() + substreamSuffix
 
 	if len(specs) == 1 {
-		if _, stale := streams[subName]; stale {
-			if go2rtc := m.go2rtcClient(); go2rtc != nil {
-				_ = go2rtc.DeleteStream(ctx, subName)
+		if m.ownsSecondaryStream(cam) {
+			if _, stale := streams[subName]; stale {
+				if go2rtc := m.go2rtcClient(); go2rtc != nil {
+					_ = go2rtc.DeleteStream(ctx, subName)
+				}
 			}
 		}
 		return
@@ -147,7 +163,7 @@ func (m *Manager) deleteCameraStreams(ctx context.Context, cam *Camera) {
 		return
 	}
 	_ = go2rtc.DeleteStream(ctx, cam.Name())
-	if m.cfg.CamSubstream(cam.Name()) {
+	if m.ownsSecondaryStream(cam) {
 		_ = go2rtc.DeleteStream(ctx, cam.Name()+substreamSuffix)
 	}
 }

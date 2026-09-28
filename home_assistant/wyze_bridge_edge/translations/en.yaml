@@ -64,11 +64,22 @@ configuration:
   camera.audio:
     name: Enable Audio
     description: Enable audio streaming by default
+  camera.substream:
+    name: Enable Secondary Stream
+    description: >-
+      Create an independent <camera>-sub stream for TUTK cameras.
+      Intended for lower-resolution detection or NVR workloads.
+      WebRTC and Gwell cameras currently ignore this setting.
+  camera.sub_quality:
+    name: Secondary Stream Quality
+    description: Quality for the secondary stream; sd is recommended.
   camera.options:
     name: Per-Camera Overrides
     description: >-
-      Override quality, audio, or record per camera. CAM_NAME matches
-      the Wyze-account name normalized (lowercase, spaces → underscores).
+      Override quality, audio, secondary-stream, or recording settings
+      per camera. CAM_NAME matches the Wyze-account name normalized
+      (lowercase, spaces → underscores). Secondary streams are
+      currently available only for TUTK cameras.
 
   snapshot:
     name: Snapshots

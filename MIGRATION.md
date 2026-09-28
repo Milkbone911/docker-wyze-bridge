@@ -22,6 +22,7 @@ image: idisposablegithub365/wyze-bridge:go
 - **Home Assistant MQTT discovery** — same entity types (camera, quality select, audio switch, night vision select)
 - **Camera filtering:** `FILTER_NAMES`, `FILTER_MODELS`, `FILTER_MACS`, `FILTER_BLOCKS` — unchanged
 - **Per-camera overrides:** `QUALITY_{CAM_NAME}`, `AUDIO_{CAM_NAME}`, `RECORD_{CAM_NAME}` — unchanged
+- **TUTK substreams:** `SUBSTREAM` / `SUB_QUALITY` and their per-camera overrides are restored; `<camera>-sub` is again available as an opt-in independent stream
 - **Recording:** `RECORD_ALL`, `RECORD_PATH`, `RECORD_FILE_NAME`, `RECORD_LENGTH`, `RECORD_KEEP` — unchanged
 - **Snapshots:** `SNAPSHOT_INT`, `SNAPSHOT_FORMAT`, `SNAPSHOT_CAMERAS`, `SNAPSHOT_KEEP`, `IMG_DIR` — unchanged
 - **WebUI auth:** `WB_AUTH`, `WB_USERNAME`, `WB_PASSWORD` — unchanged
@@ -116,7 +117,7 @@ The WebUI is a complete rewrite — dark theme, grid layout, WebRTC player via g
 | `SNAPSHOT_FORMAT` | **removed** | split into `SNAPSHOT_PATH` + `SNAPSHOT_FILE_NAME` |
 | `MQTT_DTOPIC` | `MQTT_DISCOVERY_TOPIC` | "DTOPIC" was opaque |
 
-Unchanged: `WYZE_EMAIL`/`PASSWORD`/`API_ID`/`API_KEY`, `STREAM_AUTH`, `QUALITY`, `AUDIO`, all `MQTT_*` (except DTOPIC), `FILTER_*`, all `RECORD_*`, `LATITUDE`/`LONGITUDE`, `WEBHOOK_URLS`, `LOG_LEVEL`, `FORCE_IOTC_DETAIL`, `STATE_DIR`, `STUN_SERVER`, `GWELL_*`. Per-camera overrides (`QUALITY_<CAM>`, `AUDIO_<CAM>`, `RECORD_<CAM>`) also unchanged.
+Unchanged: `WYZE_EMAIL`/`PASSWORD`/`API_ID`/`API_KEY`, `STREAM_AUTH`, `QUALITY`, `AUDIO`, all `MQTT_*` (except DTOPIC), `FILTER_*`, all `RECORD_*`, `LATITUDE`/`LONGITUDE`, `WEBHOOK_URLS`, `LOG_LEVEL`, `FORCE_IOTC_DETAIL`, `STATE_DIR`, `STUN_SERVER`, `GWELL_*`. Per-camera overrides (`QUALITY_<CAM>`, `AUDIO_<CAM>`, `RECORD_<CAM>`) also unchanged. `SUBSTREAM` and `SUB_QUALITY` are restored by this implementation rather than treated as ignored 3.x compatibility variables.
 
 ### External go2rtc Mode
 
@@ -128,6 +129,7 @@ Set `GO2RTC_URL=http://host:1984` (or `bridge.go2rtc_url` in the HA addon) to ha
 - **Recording (`RECORD_*`) is ignored** — the remote yaml controls recording; a warning is logged at startup if you have `RECORD_ALL=true` or any `RECORD_<CAM>=true` while `GO2RTC_URL` is set.
 - **`STREAM_AUTH` is ignored** — same reason; configure RTSP auth on the remote.
 - Stream name collisions: if the remote go2rtc already has a stream named `front_door`, our `PUT /api/streams?name=front_door` overwrites it. Namespace your Wyze camera names (or the remote's) if this is a concern.
+- Secondary-stream ownership is intentionally conservative when disabled. If `SUBSTREAM=false`, the bridge does not delete an existing `<camera>-sub` from an external go2rtc because that name may be user-managed. If you previously enabled bridge-managed substreams and later disable them while keeping the same external go2rtc instance, remove any stale `<camera>-sub` entry yourself.
 
 The bridge probes the URL with a `ListStreams` call at startup and fails fast if unreachable, so a bad URL shows up as a clear boot error instead of silent "no cameras."
 
@@ -250,6 +252,26 @@ rely on an earlier behavior, set the env var explicitly.
 | `BRIDGE_API_TOKEN` | — | Bearer token for REST API access (renamed from `WB_API` in 4.0) |
 | `FORCE_IOTC_DETAIL` | `false` | Verbose TUTK/go2rtc logging |
 
+### Restored TUTK substreams
+
+The Go bridge again supports an opt-in secondary stream for TUTK cameras.
+
+| Variable | Default | Description |
+| ---------- | --------- | ------------- |
+| `SUBSTREAM` | `false` | Enable `<camera>-sub` for TUTK cameras |
+| `SUB_QUALITY` | `sd` | Secondary-stream quality; legacy `sd*`/`hd*` strings map to `sd`/`hd` |
+| `SUBSTREAM_<CAM>` | global setting | Per-camera enable/disable override |
+| `SUB_QUALITY_<CAM>` | global setting | Per-camera secondary-quality override |
+
+The secondary stream is an independent go2rtc `wyze://` producer, not a
+transcode of the primary stream. Legacy numeric quality suffixes such as
+`sd30` or `hd180` keep their resolution family, but the old Python-side
+bitrate value is not carried through go2rtc's `subtype` selector. A
+secondary-stream failure does not mark
+the physical camera offline or trigger the primary stream's fallback path.
+WebRTC/KVS and Gwell cameras currently keep their primary stream only.
+The old `SUB_RECORD` behavior remains unsupported.
+
 ### Ignored Variables (silently dropped)
 
-`MTX_*`, `ON_DEMAND`, `CONNECT_TIMEOUT`, `OFFLINE_ERRNO`, `IGNORE_OFFLINE`, `SUBSTREAM`, `RTSP_FW`, `LLHLS`, `SUBJECT_ALT_NAME`, `FRESH_DATA`, `SUPERVISOR_TOKEN`
+`MTX_*`, `ON_DEMAND`, `CONNECT_TIMEOUT`, `OFFLINE_ERRNO`, `IGNORE_OFFLINE`, `SUB_RECORD`, `RTSP_FW`, `LLHLS`, `SUBJECT_ALT_NAME`, `FRESH_DATA`, `SUPERVISOR_TOKEN`

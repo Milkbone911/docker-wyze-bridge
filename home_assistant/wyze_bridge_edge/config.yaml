@@ -50,6 +50,8 @@ options:
   camera:
     quality: hd
     audio: true
+    substream: false
+    sub_quality: sd
     options: []
   snapshot: {}
   record: {}
@@ -82,10 +84,14 @@ schema:
   camera:
     quality: list(hd|sd)?
     audio: bool?
+    substream: bool?
+    sub_quality: list(sd|hd)?
     options:
       - cam_name: str?
         quality: list(hd|sd)?
         audio: bool?
+        substream: bool?
+        sub_quality: list(sd|hd)?
         record: bool?
   snapshot:
     path: str?

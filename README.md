@@ -336,8 +336,11 @@ independently.
 
 Secondary streams are currently limited to the TUTK path. WebRTC/KVS
 and Gwell cameras keep their primary stream only even when `SUBSTREAM`
-is enabled. The historical Python value `SUB_QUALITY=sd30` is accepted
-as an alias for `sd`.
+is enabled. Historical Python quality strings such as `sd30` and
+`hd180` are accepted and mapped to their `sd` or `hd` resolution
+family. The old numeric bitrate suffix is not preserved because go2rtc's
+Wyze `subtype` selector exposes the resolution family rather than that
+Python-side bitrate setting.
 
 ### Camera Filtering
 

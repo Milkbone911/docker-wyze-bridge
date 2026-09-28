@@ -129,6 +129,7 @@ Set `GO2RTC_URL=http://host:1984` (or `bridge.go2rtc_url` in the HA addon) to ha
 - **Recording (`RECORD_*`) is ignored** — the remote yaml controls recording; a warning is logged at startup if you have `RECORD_ALL=true` or any `RECORD_<CAM>=true` while `GO2RTC_URL` is set.
 - **`STREAM_AUTH` is ignored** — same reason; configure RTSP auth on the remote.
 - Stream name collisions: if the remote go2rtc already has a stream named `front_door`, our `PUT /api/streams?name=front_door` overwrites it. Namespace your Wyze camera names (or the remote's) if this is a concern.
+- Secondary-stream ownership is intentionally conservative when disabled. If `SUBSTREAM=false`, the bridge does not delete an existing `<camera>-sub` from an external go2rtc because that name may be user-managed. If you previously enabled bridge-managed substreams and later disable them while keeping the same external go2rtc instance, remove any stale `<camera>-sub` entry yourself.
 
 The bridge probes the URL with a `ListStreams` call at startup and fails fast if unreachable, so a bad URL shows up as a clear boot error instead of silent "no cameras."
 

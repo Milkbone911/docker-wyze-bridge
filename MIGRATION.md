@@ -259,12 +259,15 @@ The Go bridge again supports an opt-in secondary stream for TUTK cameras.
 | Variable | Default | Description |
 | ---------- | --------- | ------------- |
 | `SUBSTREAM` | `false` | Enable `<camera>-sub` for TUTK cameras |
-| `SUB_QUALITY` | `sd` | Secondary-stream quality; legacy `sd30` is treated as `sd` |
+| `SUB_QUALITY` | `sd` | Secondary-stream quality; legacy `sd*`/`hd*` strings map to `sd`/`hd` |
 | `SUBSTREAM_<CAM>` | global setting | Per-camera enable/disable override |
 | `SUB_QUALITY_<CAM>` | global setting | Per-camera secondary-quality override |
 
 The secondary stream is an independent go2rtc `wyze://` producer, not a
-transcode of the primary stream. A secondary-stream failure does not mark
+transcode of the primary stream. Legacy numeric quality suffixes such as
+`sd30` or `hd180` keep their resolution family, but the old Python-side
+bitrate value is not carried through go2rtc's `subtype` selector. A
+secondary-stream failure does not mark
 the physical camera offline or trigger the primary stream's fallback path.
 WebRTC/KVS and Gwell cameras currently keep their primary stream only.
 The old `SUB_RECORD` behavior remains unsupported.

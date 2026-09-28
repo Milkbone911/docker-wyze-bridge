@@ -81,6 +81,9 @@ CAM_OPTIONS:
 	if ov.SubQuality == nil || *ov.SubQuality != "sd30" {
 		t.Errorf("GARAGE sub quality = %v", ov.SubQuality)
 	}
+	if got := cfg.CamSubQuality("garage"); got != "sd" {
+		t.Errorf("CamSubQuality(garage) = %q, want normalized sd", got)
+	}
 	if ov.Record == nil || *ov.Record != true {
 		t.Errorf("GARAGE record = %v", ov.Record)
 	}

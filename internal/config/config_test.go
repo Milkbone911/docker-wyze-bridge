@@ -162,3 +162,21 @@ func TestParseLogLevel(t *testing.T) {
 		}
 	}
 }
+
+
+func TestCamSubstreamPerCameraDisableOverridesGlobal(t *testing.T) {
+	t.Setenv("SUBSTREAM", "true")
+	t.Setenv("SUBSTREAM_GARAGE", "false")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !cfg.CamSubstream("front_door") {
+		t.Error("global SUBSTREAM=true should enable unspecified cameras")
+	}
+	if cfg.CamSubstream("garage") {
+		t.Error("SUBSTREAM_GARAGE=false should override the global setting")
+	}
+}

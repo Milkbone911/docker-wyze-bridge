@@ -22,7 +22,7 @@ image: idisposablegithub365/wyze-bridge:go
 - **Home Assistant MQTT discovery** — same entity types (camera, quality select, audio switch, night vision select)
 - **Camera filtering:** `FILTER_NAMES`, `FILTER_MODELS`, `FILTER_MACS`, `FILTER_BLOCKS` — unchanged
 - **Per-camera overrides:** `QUALITY_{CAM_NAME}`, `AUDIO_{CAM_NAME}`, `RECORD_{CAM_NAME}` — unchanged
-- **TUTK substreams:** `SUBSTREAM` / `SUB_QUALITY` are restored; `<camera>-sub` is again available as an opt-in independent stream
+- **TUTK substreams:** `SUBSTREAM` / `SUB_QUALITY` and their per-camera overrides are restored; `<camera>-sub` is again available as an opt-in independent stream
 - **Recording:** `RECORD_ALL`, `RECORD_PATH`, `RECORD_FILE_NAME`, `RECORD_LENGTH`, `RECORD_KEEP` — unchanged
 - **Snapshots:** `SNAPSHOT_INT`, `SNAPSHOT_FORMAT`, `SNAPSHOT_CAMERAS`, `SNAPSHOT_KEEP`, `IMG_DIR` — unchanged
 - **WebUI auth:** `WB_AUTH`, `WB_USERNAME`, `WB_PASSWORD` — unchanged

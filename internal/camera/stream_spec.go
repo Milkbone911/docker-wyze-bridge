@@ -138,9 +138,9 @@ func (m *Manager) healthCheckSecondaryStreams(
 	}
 }
 
-// deleteCameraStreams removes every stream name owned by a physical
-// camera. The substream name is deleted unconditionally so disabling
-// SUBSTREAM or switching protocols cannot leave an orphan behind.
+// deleteCameraStreams removes stream names owned by a physical camera.
+// The secondary name is ours only when SUBSTREAM is enabled; with the
+// feature disabled, a user-defined <camera>-sub stream is left alone.
 func (m *Manager) deleteCameraStreams(ctx context.Context, cam *Camera) {
 	go2rtc := m.go2rtcClient()
 	if go2rtc == nil {

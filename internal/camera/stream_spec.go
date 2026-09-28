@@ -8,13 +8,6 @@ import (
 
 const substreamSuffix = "-sub"
 
-type streamRole string
-
-const (
-	streamRoleMain streamRole = "main"
-	streamRoleSub  streamRole = "sub"
-)
-
 // streamSpec describes one media producer for a physical camera.
 // Camera remains the device/state/control object; streamSpec is only
 // the desired go2rtc registration.
@@ -23,7 +16,6 @@ type streamSpec struct {
 	URL      string
 	Protocol string
 	Quality  string
-	Role     streamRole
 }
 
 // ownsSecondaryStream reports whether the bridge owns the historical
@@ -52,7 +44,6 @@ func (m *Manager) streamSpecsFor(cam *Camera) []streamSpec {
 		URL:      mainURL,
 		Protocol: protocol,
 		Quality:  cam.GetQuality(),
-		Role:     streamRoleMain,
 	}}
 
 	if protocol != "tutk" || !m.cfg.CamSubstream(cam.Name()) {
@@ -65,7 +56,6 @@ func (m *Manager) streamSpecsFor(cam *Camera) []streamSpec {
 		URL:      cam.GetInfo().StreamURL(quality),
 		Protocol: protocol,
 		Quality:  quality,
-		Role:     streamRoleSub,
 	})
 	return specs
 }

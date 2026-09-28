@@ -881,6 +881,8 @@ CAM_OPTIONS:
   - CAM_NAME: front-door
     RECORD: true
     QUALITY: hd
+    SUBSTREAM: true
+    SUB_QUALITY: sd
   - CAM_NAME: backyard
     AUDIO: false
 ```

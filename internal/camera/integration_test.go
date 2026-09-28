@@ -261,6 +261,8 @@ func TestManager_ReapRenameOrphans(t *testing.T) {
 	// "front_door" entry sits forever with its stale go2rtc stream.
 	// reapRenameOrphans matches on MAC and drops the orphan. Issue #100.
 	mgr, go2rtcAPI := newTestManager(t)
+	mgr.cfg.Substream = true
+	mgr.cfg.SubQuality = "sd"
 	ctx := context.Background()
 
 	oldCam := NewCamera(wyzeapi.CameraInfo{

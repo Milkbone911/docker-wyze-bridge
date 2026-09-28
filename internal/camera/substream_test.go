@@ -198,17 +198,25 @@ func TestManager_SetQualityKeepsIndependentSubQuality(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	streams, err := api.ListStreams(ctx)
-	if err != nil {
-		t.Fatal(err)
+	specs := mgr.streamSpecsFor(cam)
+	if len(specs) != 2 {
+		t.Fatalf("stream specs = %d, want 2", len(specs))
 	}
-	main := streams["den"]
-	sub := streams["den-sub"]
-	if main == nil || len(main.Producers) == 0 || !strings.Contains(main.Producers[0].URL, "subtype=sd") {
-		t.Fatalf("main producer = %+v, want subtype=sd", main)
+	if !strings.Contains(specs[0].URL, "subtype=sd") {
+		t.Errorf("main URL = %q, want subtype=sd", specs[0].URL)
 	}
-	if sub == nil || len(sub.Producers) == 0 || !strings.Contains(sub.Producers[0].URL, "subtype=hd") {
-		t.Fatalf("sub producer = %+v, want subtype=hd", sub)
+	if !strings.Contains(specs[1].URL, "subtype=hd") {
+		t.Errorf("sub URL = %q, want subtype=hd", specs[1].URL)
+	}
+
+	for _, name := range []string{"den", "den-sub"} {
+		active, err := api.HasActiveProducer(ctx, name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !active {
+			t.Errorf("%s should remain registered", name)
+		}
 	}
 }
 

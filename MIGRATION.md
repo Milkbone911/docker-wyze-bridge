@@ -252,4 +252,4 @@ rely on an earlier behavior, set the env var explicitly.
 
 ### Ignored Variables (silently dropped)
 
-`MTX_*`, `ON_DEMAND`, `CONNECT_TIMEOUT`, `OFFLINE_ERRNO`, `IGNORE_OFFLINE`, `SUBSTREAM`, `RTSP_FW`, `LLHLS`, `SUBJECT_ALT_NAME`, `FRESH_DATA`, `SUPERVISOR_TOKEN`
+`MTX_*`, `ON_DEMAND`, `CONNECT_TIMEOUT`, `OFFLINE_ERRNO`, `IGNORE_OFFLINE`, `RTSP_FW`, `LLHLS`, `SUBJECT_ALT_NAME`, `FRESH_DATA`, `SUPERVISOR_TOKEN`

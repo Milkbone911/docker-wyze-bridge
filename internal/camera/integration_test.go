@@ -279,6 +279,9 @@ func TestManager_ReapRenameOrphans(t *testing.T) {
 	if err := go2rtcAPI.AddStream(ctx, "front_door", "wyze://old"); err != nil {
 		t.Fatalf("seed old stream: %v", err)
 	}
+	if err := go2rtcAPI.AddStream(ctx, "front_door-sub", "wyze://old-sub"); err != nil {
+		t.Fatalf("seed old substream: %v", err)
+	}
 
 	// Discovery now returns the renamed camera + the untouched one.
 	discovered := []wyzeapi.CameraInfo{
@@ -299,6 +302,9 @@ func TestManager_ReapRenameOrphans(t *testing.T) {
 	streams, _ := go2rtcAPI.ListStreams(ctx)
 	if _, still := streams["front_door"]; still {
 		t.Error("stale go2rtc stream 'front_door' should have been deleted")
+	}
+	if _, still := streams["front_door-sub"]; still {
+		t.Error("stale go2rtc substream 'front_door-sub' should have been deleted")
 	}
 }
 

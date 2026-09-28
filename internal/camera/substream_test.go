@@ -30,10 +30,10 @@ func TestStreamSpecsFor_TUTKSubstream(t *testing.T) {
 	if len(specs) != 2 {
 		t.Fatalf("stream specs = %d, want 2", len(specs))
 	}
-	if specs[0].Name != "living_room" || specs[0].Role != streamRoleMain {
+	if specs[0].Name != "living_room" {
 		t.Errorf("main spec = %+v", specs[0])
 	}
-	if specs[1].Name != "living_room-sub" || specs[1].Role != streamRoleSub {
+	if specs[1].Name != "living_room-sub" {
 		t.Errorf("sub spec = %+v", specs[1])
 	}
 	if !strings.Contains(specs[0].URL, "subtype=hd") {

@@ -70,6 +70,8 @@ type Config struct {
 	Quality     string
 	Audio       bool
 	OfflineTime int
+	Substream   bool   // expose an independent secondary TUTK stream
+	SubQuality  string // quality used by the secondary stream (default sd)
 
 	// TUTKFallbackThreshold is the consecutive-TUTK-failure count at
 	// which a camera is auto-promoted to the WebRTC path. Motivated
@@ -136,10 +138,12 @@ type Config struct {
 
 // CamOverride holds per-camera setting overrides.
 type CamOverride struct {
-	Quality   *string
-	Audio     *bool
-	Record    *bool
-	RecordCmd *string // per-camera RECORD_CMD_<CAM> — overrides global
+	Quality    *string
+	Audio      *bool
+	Substream  *bool
+	SubQuality *string
+	Record     *bool
+	RecordCmd  *string // per-camera RECORD_CMD_<CAM> — overrides global
 }
 
 // Load reads configuration from environment variables, Docker secrets,
@@ -198,6 +202,8 @@ func Load() (*Config, error) {
 		Quality:               env("QUALITY", "hd"),
 		Audio:                 envBool("AUDIO", true),
 		OfflineTime:           envInt("OFFLINE_TIME", 30),
+		Substream:             envBool("SUBSTREAM", false),
+		SubQuality:            normalizeSubQuality(env("SUB_QUALITY", "sd")),
 		TUTKFallbackThreshold: envInt("TUTK_FALLBACK_THRESHOLD", 5),
 
 		// Recording — default under /media/recordings so bare-Docker
@@ -295,6 +301,25 @@ func (c *Config) CamQuality(camName string) string {
 	return c.Quality
 }
 
+// CamSubstream returns whether the secondary stream is enabled for a camera.
+func (c *Config) CamSubstream(camName string) bool {
+	key := normalizeCamName(camName)
+	if ov, ok := c.CamOverrides[key]; ok && ov.Substream != nil {
+		return *ov.Substream
+	}
+	return c.Substream
+}
+
+// CamSubQuality returns the effective secondary-stream quality for a camera.
+// The Python bridge historically documented "sd30"; go2rtc uses "sd".
+func (c *Config) CamSubQuality(camName string) string {
+	key := normalizeCamName(camName)
+	if ov, ok := c.CamOverrides[key]; ok && ov.SubQuality != nil {
+		return normalizeSubQuality(*ov.SubQuality)
+	}
+	return normalizeSubQuality(c.SubQuality)
+}
+
 // CamAudio returns the effective audio setting for a camera.
 func (c *Config) CamAudio(camName string) bool {
 	key := normalizeCamName(camName)
@@ -311,6 +336,16 @@ func (c *Config) CamRecord(camName string) bool {
 		return *ov.Record
 	}
 	return c.RecordAll
+}
+
+func normalizeSubQuality(quality string) string {
+	quality = strings.ToLower(strings.TrimSpace(quality))
+	switch quality {
+	case "", "sd30":
+		return "sd"
+	default:
+		return quality
+	}
 }
 
 func normalizeCamName(name string) string {

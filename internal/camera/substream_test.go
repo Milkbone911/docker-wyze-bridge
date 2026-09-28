@@ -158,3 +158,27 @@ func TestManager_StopStream_RemovesMainAndSub(t *testing.T) {
 		t.Errorf("state = %v, want Offline", cam.GetState())
 	}
 }
+
+
+func TestManager_SubstreamDisabledDoesNotOwnSuffix(t *testing.T) {
+	mgr, api := newTestManager(t)
+	mgr.cfg.Substream = false
+	ctx := context.Background()
+
+	if err := api.AddStream(ctx, "garage-sub", "custom-source"); err != nil {
+		t.Fatal(err)
+	}
+
+	cam := substreamTestCamera("garage", "HL_CFL2")
+	mgr.cameras[cam.Name()] = cam
+	mgr.connectCamera(ctx, cam)
+	mgr.StopStream(ctx, cam.Name())
+
+	streams, err := api.ListStreams(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := streams["garage-sub"]; !ok {
+		t.Error("garage-sub should be preserved when SUBSTREAM is disabled")
+	}
+}

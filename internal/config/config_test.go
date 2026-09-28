@@ -83,6 +83,7 @@ func TestLoadMQTTHostEnablesMQTT(t *testing.T) {
 func TestCamOverrides(t *testing.T) {
 	t.Setenv("QUALITY_FRONT_DOOR", "sd")
 	t.Setenv("SUBSTREAM_FRONT_DOOR", "true")
+	t.Setenv("SUB_QUALITY", "hd")
 	t.Setenv("SUB_QUALITY_FRONT_DOOR", "sd30")
 	t.Setenv("AUDIO_BACKYARD", "false")
 	t.Setenv("RECORD_GARAGE", "true")
@@ -103,6 +104,9 @@ func TestCamOverrides(t *testing.T) {
 	}
 	if q := cfg.CamSubQuality("front_door"); q != "sd" {
 		t.Errorf("CamSubQuality(front_door) = %q, want sd", q)
+	}
+	if q := cfg.CamSubQuality("unknown_cam"); q != "hd" {
+		t.Errorf("CamSubQuality(unknown) = %q, want global hd", q)
 	}
 	if a := cfg.CamAudio("backyard"); a {
 		t.Error("CamAudio(backyard) should be false")

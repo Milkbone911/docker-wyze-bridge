@@ -37,6 +37,18 @@ func (m *Manager) ownsSecondaryStream(cam *Camera) bool {
 // The main stream always exists. A secondary stream is opt-in and,
 // for now, only available on the TUTK path where go2rtc supports an
 // independent wyze:// producer with subtype=sd/hd.
+// StreamNames returns the media stream names owned by a physical camera.
+// Device state remains represented by Camera; callers that expose media
+// endpoints can use this to include optional variants such as <camera>-sub.
+func (m *Manager) StreamNames(cam *Camera) []string {
+	specs := m.streamSpecsFor(cam)
+	names := make([]string, 0, len(specs))
+	for _, spec := range specs {
+		names = append(names, spec.Name)
+	}
+	return names
+}
+
 func (m *Manager) streamSpecsFor(cam *Camera) []streamSpec {
 	mainURL, protocol := m.streamSourceFor(cam)
 	specs := []streamSpec{{

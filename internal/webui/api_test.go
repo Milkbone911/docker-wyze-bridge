@@ -138,6 +138,88 @@ func TestHandleStreamsM3U8(t *testing.T) {
 	}
 }
 
+func TestHandleStreamsM3U8_IncludesConfiguredSubstream(t *testing.T) {
+	srv, _ := testServer(t)
+	srv.cfg.Substream = true
+	srv.cfg.SubQuality = "sd"
+
+	cam := camera.NewCamera(wyzeapi.CameraInfo{
+		Name:     "front_door",
+		Nickname: "Front Door",
+		Model:    "HL_PAN3",
+		LanIP:    "10.0.0.5",
+		P2PID:    "UID12345678901234567",
+		ENR:      "enr123",
+		MAC:      "AABBCCDDEEFF",
+		DTLS:     true,
+	}, "hd", true, false)
+	srv.camMgr.InjectCamera("front_door", cam)
+
+	req := httptest.NewRequest("GET", "/api/streams", nil)
+	req.Host = "192.168.1.50:5080"
+	w := httptest.NewRecorder()
+	srv.handleStreamsM3U8(w, req)
+
+	body := w.Body.String()
+	if !strings.Contains(body, "rtsp://192.168.1.50:8554/front_door\n") {
+		t.Errorf("playlist missing main stream:\n%s", body)
+	}
+	if !strings.Contains(body, "rtsp://192.168.1.50:8554/front_door-sub\n") {
+		t.Errorf("playlist missing substream:\n%s", body)
+	}
+	if !strings.Contains(body, "Front Door (sub)") {
+		t.Errorf("playlist missing substream label:\n%s", body)
+	}
+}
+
+func TestHandleStreamM3U8_ResolvesConfiguredSubstream(t *testing.T) {
+	srv, _ := testServer(t)
+	srv.cfg.Substream = true
+	srv.cfg.SubQuality = "sd"
+
+	cam := camera.NewCamera(wyzeapi.CameraInfo{
+		Name:  "garage",
+		Model: "HL_CFL2",
+		LanIP: "10.0.0.6",
+		P2PID: "UID12345678901234568",
+		ENR:   "enr456",
+		MAC:   "AABBCCDDEE00",
+		DTLS:  true,
+	}, "hd", true, false)
+	srv.camMgr.InjectCamera("garage", cam)
+
+	req := httptest.NewRequest("GET", "/api/streams/garage-sub.m3u8", nil)
+	req.Host = "192.168.1.50:5080"
+	w := httptest.NewRecorder()
+	srv.handleStreamM3U8(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200", w.Code)
+	}
+	if !strings.Contains(w.Body.String(), "rtsp://192.168.1.50:8554/garage-sub") {
+		t.Errorf("substream playlist = %q", w.Body.String())
+	}
+}
+
+func TestHandleStreamM3U8_SubstreamDisabledIsNotExposed(t *testing.T) {
+	srv, _ := testServer(t)
+
+	cam := camera.NewCamera(wyzeapi.CameraInfo{
+		Name:  "garage",
+		Model: "HL_CFL2",
+		LanIP: "10.0.0.6",
+	}, "hd", true, false)
+	srv.camMgr.InjectCamera("garage", cam)
+
+	req := httptest.NewRequest("GET", "/api/streams/garage-sub.m3u8", nil)
+	w := httptest.NewRecorder()
+	srv.handleStreamM3U8(w, req)
+
+	if w.Code != http.StatusNotFound {
+		t.Fatalf("status = %d, want 404", w.Code)
+	}
+}
+
 func TestHandleSnapshot_Missing(t *testing.T) {
 	srv, _ := testServer(t)
 

@@ -250,8 +250,9 @@ func (m *Manager) ConnectAll(ctx context.Context) {
 	wg.Wait()
 }
 
-// connectCamera registers a camera's stream with go2rtc via the HTTP
-// API. The stream URL is picked by protocol:
+// connectCamera registers a camera's primary stream with go2rtc via
+// the HTTP API, then reconciles any optional secondary stream. The
+// primary stream URL is picked by protocol:
 //
 //   - TUTK: wyze:// source — go2rtc dials the camera directly.
 //   - WebRTC (GW_BE1 / GW_DBD / any Gwell model without a LAN IP):
@@ -269,7 +270,9 @@ func (m *Manager) connectCamera(ctx context.Context, cam *Camera) {
 		return
 	}
 
-	streamURL, protocol := m.streamSourceFor(cam)
+	specs := m.streamSpecsFor(cam)
+	main := specs[0]
+	streamURL, protocol := main.URL, main.Protocol
 	snap := cam.Snapshot()
 
 	m.log.Info().
@@ -283,6 +286,14 @@ func (m *Manager) connectCamera(ctx context.Context, cam *Camera) {
 		Bool("dtls", snap.Info.DTLS).
 		Msg("connecting camera to go2rtc")
 
+	// If an opted-in camera has moved away from TUTK (for example,
+	// runtime TUTK -> WebRTC fallback), its secondary producer is no
+	// longer valid. Remove it before attempting the new primary route
+	// so a failed primary reconnect cannot leave stale SD media behind.
+	if protocol != "tutk" && m.ownsSecondaryStream(cam) {
+		_ = go2rtc.DeleteStream(ctx, cam.Name()+substreamSuffix)
+	}
+
 	// Drop any prior go2rtc entry first so the PUT below is a clean
 	// re-create rather than an in-place source swap. Without this,
 	// a reconnect after HealthCheck saw 0 producers can leave the
@@ -291,10 +302,10 @@ func (m *Manager) connectCamera(ctx context.Context, cam *Camera) {
 	// have an active RTSP publisher we'd disrupt (and HealthCheck
 	// already excludes Gwell, so we don't get here for them anyway).
 	if protocol != "gwell" {
-		_ = go2rtc.DeleteStream(ctx, cam.Name())
+		_ = go2rtc.DeleteStream(ctx, main.Name)
 	}
 
-	if err := go2rtc.AddStream(ctx, cam.Name(), streamURL); err != nil {
+	if err := go2rtc.AddStream(ctx, main.Name, streamURL); err != nil {
 		backoff := cam.IncrementError()
 		errors := cam.GetErrorCount()
 		m.log.Error().Err(err).
@@ -313,6 +324,7 @@ func (m *Manager) connectCamera(ctx context.Context, cam *Camera) {
 		Str("protocol", protocol).
 		Msg("camera connected successfully")
 	m.changeState(cam, StateStreaming)
+	m.syncSecondaryStreams(ctx, cam)
 }
 
 // streamSourceFor returns the go2rtc source URL and a label for the
@@ -391,7 +403,10 @@ func (m *Manager) HealthCheck(ctx context.Context) {
 			// per-call (streamSourceFor is idempotent).
 			_, protocol := m.streamSourceFor(cam)
 			m.recordTUTKFailure(cam, protocol)
+			continue
 		}
+
+		m.healthCheckSecondaryStreams(ctx, cam, streams)
 	}
 }
 
@@ -457,9 +472,7 @@ func (m *Manager) reapRenameOrphans(ctx context.Context, filtered []wyzeapi.Came
 			Str("new_name", newName).
 			Str("mac", info.MAC).
 			Msg("camera rename detected, dropping orphan entry")
-		if go2rtc := m.go2rtcClient(); go2rtc != nil {
-			_ = go2rtc.DeleteStream(ctx, oldName)
-		}
+		m.deleteCameraStreams(ctx, existing)
 		delete(m.cameras, oldName)
 	}
 }
@@ -512,9 +525,12 @@ func (m *Manager) SetQuality(ctx context.Context, name, quality string) error {
 	if go2rtc == nil {
 		return nil
 	}
-	// Remove and re-add in go2rtc with new URL
+	// Remove and re-add only the primary stream with its current
+	// protocol route. The independent substream keeps its configured
+	// quality and lifecycle.
+	streamURL, _ := m.streamSourceFor(cam)
 	_ = go2rtc.DeleteStream(ctx, name)
-	return go2rtc.AddStream(ctx, name, cam.StreamURL())
+	return go2rtc.AddStream(ctx, name, streamURL)
 }
 
 // RestartStream forces a camera reconnect.
@@ -524,9 +540,7 @@ func (m *Manager) RestartStream(ctx context.Context, name string) {
 		return
 	}
 
-	if go2rtc := m.go2rtcClient(); go2rtc != nil {
-		_ = go2rtc.DeleteStream(ctx, name)
-	}
+	m.deleteCameraStreams(ctx, cam)
 	m.changeState(cam, StateOffline)
 	m.connectCamera(ctx, cam)
 }
@@ -544,15 +558,13 @@ func (m *Manager) StartStream(ctx context.Context, name string) {
 	m.connectCamera(ctx, cam)
 }
 
-// StopStream removes a stream from go2rtc and marks the camera offline.
+// StopStream removes all streams for a camera from go2rtc and marks it offline.
 func (m *Manager) StopStream(ctx context.Context, name string) {
 	cam := m.GetCamera(name)
 	if cam == nil {
 		return
 	}
-	if go2rtc := m.go2rtcClient(); go2rtc != nil {
-		_ = go2rtc.DeleteStream(ctx, name)
-	}
+	m.deleteCameraStreams(ctx, cam)
 	m.changeState(cam, StateOffline)
 }
 

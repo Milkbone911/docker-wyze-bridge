@@ -147,11 +147,11 @@ func TestHandleStreamsM3U8_IncludesConfiguredSubstream(t *testing.T) {
 		Name:     "front_door",
 		Nickname: "Front Door",
 		Model:    "HL_PAN3",
-		LanIP: "10.0.0.5",
-		P2PID: "UID12345678901234567",
-		ENR:   "enr123",
-		MAC:   "AABBCCDDEEFF",
-		DTLS:  true,
+		LanIP:    "10.0.0.5",
+		P2PID:    "UID12345678901234567",
+		ENR:      "enr123",
+		MAC:      "AABBCCDDEEFF",
+		DTLS:     true,
 	}, "hd", true, false)
 	srv.camMgr.InjectCamera("front_door", cam)
 

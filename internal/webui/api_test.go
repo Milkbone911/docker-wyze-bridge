@@ -144,8 +144,9 @@ func TestHandleStreamsM3U8_IncludesConfiguredSubstream(t *testing.T) {
 	srv.cfg.SubQuality = "sd"
 
 	cam := camera.NewCamera(wyzeapi.CameraInfo{
-		Name:  "front_door",
-		Model: "HL_PAN3",
+		Name:     "front_door",
+		Nickname: "Front Door",
+		Model:    "HL_PAN3",
 		LanIP: "10.0.0.5",
 		P2PID: "UID12345678901234567",
 		ENR:   "enr123",
@@ -166,7 +167,7 @@ func TestHandleStreamsM3U8_IncludesConfiguredSubstream(t *testing.T) {
 	if !strings.Contains(body, "rtsp://192.168.1.50:8554/front_door-sub\n") {
 		t.Errorf("playlist missing substream:\n%s", body)
 	}
-	if !strings.Contains(body, "front_door (sub)") {
+	if !strings.Contains(body, "Front Door (sub)") {
 		t.Errorf("playlist missing substream label:\n%s", body)
 	}
 }

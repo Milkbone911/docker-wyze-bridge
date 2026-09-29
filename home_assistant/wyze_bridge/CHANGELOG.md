@@ -51,6 +51,12 @@ uses the configured ports instead of hard-coded 8554 / 1984.
 - **`SNAPSHOT_INTERVAL` accepts durations** ([#128](https://github.com/IDisposable/docker-wyze-bridge/issues/128)):
 	`60`, `60s`, `5m`, and `1d` all work. `60s` used to be ignored,
 	which left snapshots off.
+- **TUTK substreams restored** ([#103](https://github.com/IDisposable/docker-wyze-bridge/issues/103)):
+	`SUBSTREAM=true` again publishes an independent `<camera>-sub`
+	producer, with `SUB_QUALITY=sd` by default and per-camera overrides.
+	Secondary stream failures are isolated from the physical camera and
+	primary-stream reconnect/fallback state. WebRTC/KVS and Gwell cameras
+	remain primary-stream only; `SUB_RECORD` is not restored.
 
 ## 4.5.0
 

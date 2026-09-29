@@ -241,8 +241,14 @@ func (s *Server) handleStreamsM3U8(w http.ResponseWriter, r *http.Request) {
 
 	bridgeIP := s.displayHost(r)
 	for _, cam := range s.camMgr.Cameras() {
-		fmt.Fprintf(w, "#EXTINF:-1,%s\n", cam.GetInfo().Nickname)
-		fmt.Fprintf(w, "rtsp://%s:8554/%s\n", bridgeIP, cam.Name())
+		for _, streamName := range s.camMgr.StreamNames(cam) {
+			label := cam.GetInfo().Nickname
+			if streamName != cam.Name() {
+				label += " (sub)"
+			}
+			fmt.Fprintf(w, "#EXTINF:-1,%s\n", label)
+			fmt.Fprintf(w, "rtsp://%s:8554/%s\n", bridgeIP, streamName)
+		}
 	}
 }
 
@@ -253,8 +259,25 @@ func (s *Server) handleStreamM3U8(w http.ResponseWriter, r *http.Request) {
 	path = strings.TrimPrefix(path, "/stream/")
 	name := strings.TrimSuffix(path, ".m3u8")
 
-	cam := s.camMgr.GetCamera(name)
-	if cam == nil {
+	var streamCamName string
+	var streamLabel string
+	for _, cam := range s.camMgr.Cameras() {
+		for _, streamName := range s.camMgr.StreamNames(cam) {
+			if streamName != name {
+				continue
+			}
+			streamCamName = streamName
+			streamLabel = cam.GetInfo().Nickname
+			if streamName != cam.Name() {
+				streamLabel += " (sub)"
+			}
+			break
+		}
+		if streamCamName != "" {
+			break
+		}
+	}
+	if streamCamName == "" {
 		http.NotFound(w, r)
 		return
 	}
@@ -263,8 +286,8 @@ func (s *Server) handleStreamM3U8(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/vnd.apple.mpegurl")
 	fmt.Fprintln(w, "#EXTM3U")
 	fmt.Fprintln(w, "#EXT-X-VERSION:3")
-	fmt.Fprintf(w, "#EXTINF:-1,%s\n", cam.GetInfo().Nickname)
-	fmt.Fprintf(w, "rtsp://%s:8554/%s\n", bridgeIP, cam.Name())
+	fmt.Fprintf(w, "#EXTINF:-1,%s\n", streamLabel)
+	fmt.Fprintf(w, "rtsp://%s:8554/%s\n", bridgeIP, streamCamName)
 }
 
 func writeJSON(w http.ResponseWriter, data interface{}) {

@@ -76,7 +76,8 @@ go2rtc handles all TUTK cameras and all WebRTC (doorbell-lineage) cameras. For O
 
 - **go2rtc as sidecar**: Managed subprocess, communication via HTTP API on 127.0.0.1:1984. Dynamic stream add/remove without restart.
 - **State machine per camera**: `StateOffline → StateDiscovering → StateConnecting → StateStreaming → StateError` with exponential backoff (`min(5s * 2^n, 5min)`).
-- **Config precedence**: Environment variables > YAML config > defaults. Per-camera overrides via `QUALITY_{CAM_NAME}`, `AUDIO_{CAM_NAME}`, `RECORD_{CAM_NAME}`.
+- **Physical camera vs media streams**: one `Camera` owns device identity, controls, and authoritative state. A TUTK camera may optionally register a second `<camera>-sub` go2rtc producer; secondary-stream health is isolated from the physical camera/main-stream error and fallback state.
+- **Config precedence**: Environment variables > YAML config > defaults. Per-camera overrides via `QUALITY_{CAM_NAME}`, `AUDIO_{CAM_NAME}`, `SUBSTREAM_{CAM_NAME}`, `SUB_QUALITY_{CAM_NAME}`, `RECORD_{CAM_NAME}`.
 - **State persistence**: `$STATE_DIR/wyze-bridge.state.json` survives container restarts.
 - **SSE for WebUI**: Real-time camera state updates via Server-Sent Events, no polling.
 - **Non-blocking notifications**: State change callbacks fire SSE, MQTT, webhooks, and state save each in their own goroutine. Camera connections and snapshots fan out with `sync.WaitGroup`.

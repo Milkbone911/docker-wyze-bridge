@@ -261,6 +261,8 @@ func TestManager_ReapRenameOrphans(t *testing.T) {
 	// "front_door" entry sits forever with its stale go2rtc stream.
 	// reapRenameOrphans matches on MAC and drops the orphan. Issue #100.
 	mgr, go2rtcAPI := newTestManager(t)
+	mgr.cfg.Substream = true
+	mgr.cfg.SubQuality = "sd"
 	ctx := context.Background()
 
 	oldCam := NewCamera(wyzeapi.CameraInfo{
@@ -278,6 +280,9 @@ func TestManager_ReapRenameOrphans(t *testing.T) {
 	// Pre-register the old go2rtc stream so we can assert it's deleted.
 	if err := go2rtcAPI.AddStream(ctx, "front_door", "wyze://old"); err != nil {
 		t.Fatalf("seed old stream: %v", err)
+	}
+	if err := go2rtcAPI.AddStream(ctx, "front_door-sub", "wyze://old-sub"); err != nil {
+		t.Fatalf("seed old substream: %v", err)
 	}
 
 	// Discovery now returns the renamed camera + the untouched one.
@@ -299,6 +304,9 @@ func TestManager_ReapRenameOrphans(t *testing.T) {
 	streams, _ := go2rtcAPI.ListStreams(ctx)
 	if _, still := streams["front_door"]; still {
 		t.Error("stale go2rtc stream 'front_door' should have been deleted")
+	}
+	if _, still := streams["front_door-sub"]; still {
+		t.Error("stale go2rtc substream 'front_door-sub' should have been deleted")
 	}
 }
 

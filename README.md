@@ -294,6 +294,8 @@ Everything is controlled by environment variables. See
 | `WYZE_TOTP_KEY` | optional | TOTP secret for accounts with 2FA enabled |
 | `BRIDGE_IP` | for WebRTC | Host IP that browsers reach the bridge at; injected as a WebRTC ICE candidate |
 | `MQTT_HOST` | for MQTT | MQTT broker hostname (enables MQTT) |
+| `SUBSTREAM` | no | Create an independent secondary stream for TUTK cameras (default `false`) |
+| `SUB_QUALITY` | no | Secondary stream quality, `sd` by default |
 | `LOG_LEVEL` | no | `trace` / `debug` / `info` / `warn` / `error` (default `info`) |
 
 ### Per-Camera Overrides
@@ -301,10 +303,44 @@ Everything is controlled by environment variables. See
 Uppercase the normalized camera name, then prefix:
 
 ```bash
-QUALITY_FRONT_DOOR=sd      # hd (default) or sd
-AUDIO_BACKYARD=false       # audio off for this camera
-RECORD_GARAGE=true         # recording on for just this camera
+QUALITY_FRONT_DOOR=sd          # hd (default) or sd
+AUDIO_BACKYARD=false           # audio off for this camera
+SUBSTREAM_FRONT_DOOR=true      # enable <camera>-sub for this TUTK camera
+SUB_QUALITY_FRONT_DOOR=sd      # secondary stream quality
+RECORD_GARAGE=true             # recording on for just this camera
 ```
+
+### Secondary Streams
+
+Set `SUBSTREAM=true` to create a second, independently sourced stream
+for each TUTK camera. The primary stream keeps its normal camera name
+and quality; the secondary stream is published as `<camera>-sub`.
+
+```bash
+SUBSTREAM=true
+SUB_QUALITY=sd
+```
+
+For a camera named `front_door`, consumers can use:
+
+```text
+rtsp://HOST:8554/front_door
+rtsp://HOST:8554/front_door-sub
+```
+
+The secondary source is a separate go2rtc `wyze://` producer using the
+requested Wyze subtype; it is not a downscaled transcode of the primary
+stream. A secondary-stream failure does not mark the physical camera or
+its primary stream offline. The health loop retries the secondary stream
+independently.
+
+Secondary streams are currently limited to the TUTK path. WebRTC/KVS
+and Gwell cameras keep their primary stream only even when `SUBSTREAM`
+is enabled. Historical Python quality strings such as `sd30` and
+`hd180` are accepted and mapped to their `sd` or `hd` resolution
+family. The old numeric bitrate suffix is not preserved because go2rtc's
+Wyze `subtype` selector exposes the resolution family rather than that
+Python-side bitrate setting.
 
 ### Camera Filtering
 

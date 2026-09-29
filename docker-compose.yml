@@ -110,12 +110,16 @@ services:
             # ── Camera defaults ──────────────────────────────────
             # - QUALITY=hd                        # hd | sd
             # - AUDIO=true
+            # - SUBSTREAM=false                   # TUTK only; adds <camera>-sub
+            # - SUB_QUALITY=sd                    # secondary stream quality
             # - OFFLINE_TIME=30                   # sec after which a
                                                   #  stuck stream is flagged offline
             # Per-camera overrides use CAM_NAME uppercased with
             # spaces → underscores (matches the normalized name):
             # - QUALITY_FRONT_DOOR=sd
             # - AUDIO_FRONT_DOOR=false
+            # - SUBSTREAM_FRONT_DOOR=true
+            # - SUB_QUALITY_FRONT_DOOR=sd
             # - RECORD_FRONT_DOOR=true            # override RECORD_ALL for this cam
             # - RECORD_CMD_FRONT_DOOR=            # override the ffmpeg argv template
 
